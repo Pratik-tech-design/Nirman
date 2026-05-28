@@ -1,0 +1,8 @@
+{
+  "name": "Labour Tracker",
+  "description": "Industrial labor management and payment tracking utility with dual English-Hindi labels and a real-time site dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "102956641811",
+    "project_id": "labour-tracker-placeholder",
+    "storage_bucket": "labour-tracker-placeholder.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:102956641811:android:df02facdf4d2d8544cb48e",
+        "android_client_info": {
+          "package_name": "com.aistudio.labourtracker.pvmqzt"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDummyKeyPlaceholderValueForCompilation"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
