@@ -1,13 +1,14 @@
 {
   "project_info": {
-    "project_number": "102956641811",
-    "project_id": "labour-tracker-placeholder",
-    "storage_bucket": "labour-tracker-placeholder.appspot.com"
+    "project_number": "772762668698",
+    "firebase_url": "https://nirman-30faa-default-rtdb.firebaseio.com",
+    "project_id": "nirman-30faa",
+    "storage_bucket": "nirman-30faa.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:102956641811:android:df02facdf4d2d8544cb48e",
+        "mobilesdk_app_id": "1:772762668698:android:5d13c1a83d006e339ad923",
         "android_client_info": {
           "package_name": "com.aistudio.labourtracker.pvmqzt"
         }
@@ -15,7 +16,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDummyKeyPlaceholderValueForCompilation"
+          "current_key": "AIzaSyDeOm5SCFseKKkFlQvymn-5hG0FGj_NsAQ"
         }
       ],
       "services": {

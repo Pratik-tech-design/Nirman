@@ -8,6 +8,7 @@ import com.example.data.models.Payment
 import com.example.data.models.Site
 import com.example.data.models.UserProfile
 import com.example.data.models.Attendance
+import com.example.data.models.SiteExpense
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -58,6 +59,7 @@ object ExcelExporter {
         labours: List<Labour>,
         payments: List<Payment>,
         attendances: List<Attendance> = emptyList(),
+        siteExpenses: List<SiteExpense> = emptyList(),
         filterSiteId: Int? = null,
         filterLabourId: Int? = null,
         startDateStr: String? = null, // "YYYY-MM-DD"
@@ -67,9 +69,11 @@ object ExcelExporter {
         // Apply filters
         var filteredPayments = payments
         var filteredAttendances = attendances
+        var filteredSiteExpenses = siteExpenses
         if (filterSiteId != null) {
             filteredPayments = filteredPayments.filter { it.siteId == filterSiteId }
             filteredAttendances = filteredAttendances.filter { it.siteId == filterSiteId }
+            filteredSiteExpenses = filteredSiteExpenses.filter { it.siteId == filterSiteId }
         }
         if (filterLabourId != null) {
             filteredPayments = filteredPayments.filter { it.labourId == filterLabourId }
@@ -78,10 +82,12 @@ object ExcelExporter {
         if (!startDateStr.isNullOrBlank()) {
             filteredPayments = filteredPayments.filter { it.date >= startDateStr }
             filteredAttendances = filteredAttendances.filter { it.date >= startDateStr }
+            filteredSiteExpenses = filteredSiteExpenses.filter { it.expenseDate >= startDateStr }
         }
         if (!endDateStr.isNullOrBlank()) {
             filteredPayments = filteredPayments.filter { it.date <= endDateStr }
             filteredAttendances = filteredAttendances.filter { it.date <= endDateStr }
+            filteredSiteExpenses = filteredSiteExpenses.filter { it.expenseDate <= endDateStr }
         }
 
         // Setup File Name
@@ -181,7 +187,8 @@ object ExcelExporter {
             isHindi = isHindi,
             sites = sites,
             labours = labours,
-            payments = filteredPayments
+            payments = filteredPayments,
+            siteExpenses = filteredSiteExpenses
         ).toByteArray())
 
         // Generate Sheet 4 (Daily Attendance Log)
@@ -203,6 +210,16 @@ object ExcelExporter {
             reportPeriodStr = reportPeriodStr,
             isHindi = isHindi,
             payments = filteredPayments
+        ).toByteArray())
+
+        // Generate Sheet 6 (Site Non-Labour Expenses)
+        zos.putNextEntry(ZipEntry("xl/worksheets/sheet6.xml"))
+        zos.write(generateSheet6Xml(
+            user = user,
+            reportPeriodStr = reportPeriodStr,
+            isHindi = isHindi,
+            siteExpenses = filteredSiteExpenses,
+            sites = sites
         ).toByteArray())
 
         zos.close()
@@ -228,6 +245,7 @@ object ExcelExporter {
   <Override PartName="/xl/worksheets/sheet3.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
   <Override PartName="/xl/worksheets/sheet4.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
   <Override PartName="/xl/worksheets/sheet5.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/worksheets/sheet6.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
 </Types>"""
     }
 
@@ -240,6 +258,7 @@ object ExcelExporter {
     <sheet name="Site Expense Ledger" sheetId="3" r:id="rId3"/>
     <sheet name="Daily Attendance Log" sheetId="4" r:id="rId4"/>
     <sheet name="Monthly Analytics" sheetId="5" r:id="rId5"/>
+    <sheet name="Material &amp; Site Expenses" sheetId="6" r:id="rId6"/>
   </sheets>
 </workbook>"""
     }
@@ -252,7 +271,8 @@ object ExcelExporter {
   <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet3.xml"/>
   <Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet4.xml"/>
   <Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet5.xml"/>
-  <Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  <Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet6.xml"/>
+  <Relationship Id="rId7" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
 </Relationships>"""
     }
 
@@ -598,7 +618,8 @@ object ExcelExporter {
         isHindi: Boolean,
         sites: List<Site>,
         labours: List<Labour>,
-        payments: List<Payment>
+        payments: List<Payment>,
+        siteExpenses: List<SiteExpense> = emptyList()
     ): String {
         val todayStr = SimpleDateFormat("dd MMMM yyyy", Locale.getDefault()).format(Date())
         val titleText = if (isHindi) "साइटवार व्यय लेजर" else "SITE OPERATIONAL EXPENSE LEDGER"
@@ -659,14 +680,16 @@ object ExcelExporter {
             sites.forEach { site ->
                 val siteWorkers = labours.filter { it.siteId == site.id && it.status == "Active" }
                 val sitePayments = payments.filter { it.siteId == site.id }
+                val siteNonLabourExpenses = siteExpenses.filter { it.siteId == site.id }
                 
                 val siteKharchi = sitePayments.filter { it.paymentType.contains("Kharchi") || it.paymentType.contains("Daily") }.sumOf { it.amount }
                 val siteAdvance = sitePayments.filter { it.paymentType.contains("Advance") || it.paymentType.contains("Weekly") }.sumOf { it.amount }
                 val siteDeduction = sitePayments.filter { it.paymentType.contains("Deduction") }.sumOf { it.amount }
                 val siteBonus = sitePayments.filter { it.paymentType.contains("Bonus") }.sumOf { it.amount }
                 val siteExtra = sitePayments.filter { it.paymentType.contains("Extra") }.sumOf { it.amount }
+                val nonLabourExpSum = siteNonLabourExpenses.sumOf { it.amount }
 
-                val siteTotalExpense = siteKharchi + siteExtra + siteAdvance + siteBonus - siteDeduction
+                val siteTotalExpense = siteKharchi + siteExtra + siteAdvance + siteBonus - siteDeduction + nonLabourExpSum
 
                 if (siteTotalExpense > maxExpense) {
                     maxExpense = siteTotalExpense
@@ -971,6 +994,95 @@ object ExcelExporter {
             else -> monthCode
         }
         return "$monthName $year"
+    }
+
+    private fun generateSheet6Xml(
+        user: UserProfile,
+        reportPeriodStr: String,
+        isHindi: Boolean,
+        siteExpenses: List<SiteExpense>,
+        sites: List<Site>
+    ): String {
+        val todayStr = SimpleDateFormat("dd MMMM yyyy", Locale.getDefault()).format(Date())
+        val titleText = if (isHindi) "गैर-मजदूर साइट व्यय रजिस्टर" else "NON-LABOUR SITE EXPENSE REGISTER"
+        
+        val sb = java.lang.StringBuilder()
+        sb.append("""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheetViews>
+    <sheetView tabSelected="0" workbookViewId="0">
+      <pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/>
+    </sheetView>
+  </sheetViews>
+  <cols>
+    <col min="1" max="1" width="16" customWidth="1"/>
+    <col min="2" max="2" width="25" customWidth="1"/>
+    <col min="3" max="3" width="22" customWidth="1"/>
+    <col min="4" max="4" width="16" customWidth="1"/>
+    <col min="5" max="5" width="20" customWidth="1"/>
+    <col min="6" max="6" width="18" customWidth="1"/>
+    <col min="7" max="7" width="28" customWidth="1"/>
+  </cols>
+  <sheetData>""")
+
+        // Title Block info
+        sb.append("<row r=\"1\" ht=\"28\" customHeight=\"1\">")
+        sb.append(writeCell(1, 0, titleText, 2))
+        for (i in 1..6) sb.append(writeCell(1, i, "", 2))
+        sb.append("</row>")
+
+        sb.append("<row r=\"2\" ht=\"18\" customHeight=\"1\">")
+        sb.append(writeCell(2, 0, "Generated On: $todayStr | Total Expense Records: ${siteExpenses.size} | Manager: ${user.displayName}", 0))
+        sb.append("</row>")
+        
+        sb.append("<row r=\"3\" ht=\"15\"/>")
+
+        // Headers
+        sb.append("<row r=\"4\" ht=\"25\" customHeight=\"1\">")
+        sb.append(writeCell(4, 0, if (isHindi) "दिनांक" else "Date", 3))
+        sb.append(writeCell(4, 1, if (isHindi) "साइट" else "Site", 3))
+        sb.append(writeCell(4, 2, if (isHindi) "खर्च विवरण" else "Expense Name", 3))
+        sb.append(writeCell(4, 3, if (isHindi) "राशि" else "Amount (INR)", 3))
+        sb.append(writeCell(4, 4, if (isHindi) "किसे भुगतान किया" else "Paid To", 3))
+        sb.append(writeCell(4, 5, if (isHindi) "श्रेणी" else "Category", 3))
+        sb.append(writeCell(4, 6, if (isHindi) "टिप्पणी / विवरण" else "Description Details", 3))
+        sb.append("</row>")
+
+        var rIdx = 5
+        if (siteExpenses.isEmpty()) {
+            sb.append("<row r=\"$rIdx\" ht=\"22\" customHeight=\"1\">")
+            sb.append(writeCell(rIdx, 0, if (isHindi) "कोई साइट खर्च उपलब्ध नहीं है" else "No Site Expense Records Available", 0))
+            for (i in 1..6) sb.append(writeCell(rIdx, i, "", 0))
+            sb.append("</row>")
+            rIdx++
+        } else {
+            siteExpenses.forEach { exp ->
+                val siteName = sites.find { it.id == exp.siteId }?.name ?: "Unknown Site"
+                val altRowStyle = if (rIdx % 2 == 1) 14 else 0
+                val altCenterStyle = if (rIdx % 2 == 1) 15 else 13
+
+                sb.append("<row r=\"$rIdx\" ht=\"22\" customHeight=\"1\">")
+                sb.append(writeCell(rIdx, 0, exp.expenseDate, altCenterStyle))
+                sb.append(writeCell(rIdx, 1, siteName, 0))
+                sb.append(writeCell(rIdx, 2, exp.expenseName, 1))
+                sb.append(writeCell(rIdx, 3, exp.amount, 6)) // Style 6 is bold currency right-aligned
+                sb.append(writeCell(rIdx, 4, exp.paidTo, 0))
+                sb.append(writeCell(rIdx, 5, exp.category, altCenterStyle))
+                sb.append(writeCell(rIdx, 6, exp.description, 0))
+                sb.append("</row>")
+                rIdx++
+            }
+        }
+
+        val autoEndRow = rIdx - 1
+
+        sb.append("""  </sheetData>
+  <autoFilter ref="A4:G$autoEndRow"/>
+  <mergeCells count="1">
+    <mergeCell ref="A1:G1"/>
+  </mergeCells>
+</worksheet>""")
+        return sb.toString()
     }
 
     /**

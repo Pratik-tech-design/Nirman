@@ -5,12 +5,16 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Delete
 import com.example.data.models.Labour
 import com.example.data.models.Payment
 import com.example.data.models.Site
 import com.example.data.models.UserProfile
 import com.example.data.models.Attendance
 import com.example.data.models.AttendanceDraft
+import com.example.data.models.AttendanceAuditLog
+import com.example.data.models.SiteExpense
+import com.example.data.models.RecentActivity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -24,6 +28,13 @@ interface LabourDao {
 
     @Query("SELECT * FROM attendance WHERE userId = :userId AND date = :date")
     suspend fun getAttendanceByDate(userId: String, date: String): List<Attendance>
+
+    // Attendance Audit Logs
+    @Query("SELECT * FROM attendance_audit_logs WHERE userId = :userId ORDER BY editedAt DESC")
+    fun getAllAttendanceAuditLogs(userId: String): Flow<List<AttendanceAuditLog>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAttendanceAuditLog(log: AttendanceAuditLog): Long
 
     // Attendance Drafts
     @Query("SELECT * FROM attendance_drafts WHERE userId = :userId AND date = :date")
@@ -90,4 +101,27 @@ interface LabourDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPayment(payment: Payment): Long
+
+    @Delete
+    suspend fun deletePayment(payment: Payment)
+
+    // Site Expenses
+    @Query("SELECT * FROM site_expenses WHERE userId = :userId ORDER BY expenseDate DESC, id DESC")
+    fun getAllSiteExpenses(userId: String): Flow<List<SiteExpense>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSiteExpense(expense: SiteExpense): Long
+
+    @Update
+    suspend fun updateSiteExpense(expense: SiteExpense)
+
+    @Query("DELETE FROM site_expenses WHERE id = :id AND userId = :userId")
+    suspend fun deleteSiteExpenseById(id: Int, userId: String)
+
+    // Recent Activities
+    @Query("SELECT * FROM recent_activities WHERE userId = :userId ORDER BY timestamp DESC")
+    fun getAllRecentActivities(userId: String): Flow<List<RecentActivity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertRecentActivity(activity: RecentActivity): Long
 }

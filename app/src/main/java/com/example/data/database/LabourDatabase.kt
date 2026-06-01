@@ -11,11 +11,14 @@ import com.example.data.models.Site
 import com.example.data.models.UserProfile
 import com.example.data.models.Attendance
 import com.example.data.models.AttendanceDraft
+import com.example.data.models.AttendanceAuditLog
+import com.example.data.models.SiteExpense
+import com.example.data.models.RecentActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-@Database(entities = [Labour::class, Site::class, Payment::class, UserProfile::class, Attendance::class, AttendanceDraft::class], version = 7, exportSchema = false)
+@Database(entities = [Labour::class, Site::class, Payment::class, UserProfile::class, Attendance::class, AttendanceDraft::class, AttendanceAuditLog::class, SiteExpense::class], version = 9, exportSchema = false)
 abstract class LabourDatabase : RoomDatabase() {
     abstract fun labourDao(): LabourDao
 

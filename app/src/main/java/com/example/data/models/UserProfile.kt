@@ -10,5 +10,6 @@ data class UserProfile(
     val email: String,
     val profilePhoto: String,
     val createdAt: Long = System.currentTimeMillis(),
-    val preferredLanguage: String = "English"
+    val preferredLanguage: String = "English",
+    val role: String = "Owner" // Role can be "Owner", "Admin", "Contractor"
 )
